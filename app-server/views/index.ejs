@@ -1,0 +1,234 @@
+<% include _header %>
+
+<div class="container">
+
+<div class="row">
+    
+    <div class="col-sm-9">
+        <div class="container" id="chartarea" style="background-color:#f2f2f2; width: 100%; height: 75vh">
+        </div>
+    </div>
+
+    <div class="col-sm-3">
+        <form class="navbar-form navbar-left" action="javascript:void(0);">
+        <div class="input-group" style="float: left">
+            <input id="ticker" type="text" class="form-control" placeholder="Enter ticker">
+            <div class="input-group-btn">
+                <button id="searchok" class="btn btn-default" id="searchbutton" type="submit">
+                <i class="glyphicon glyphicon-search"></i>
+                </button>
+            </div>
+        </div>
+        </form>
+    </div>
+</div>
+<div class="row container">
+    <div class="col-sm-9" style="margin-top: 10px;">
+        <div class="row" id="tickerpanel" ></div>
+    </div>
+    <div class="col-sm-3"></div>
+    </div>
+</div>
+
+<script>
+
+//$(document).ready(function(){
+    //$("#body").append("<h4 style=\"margin-top: -5px;\">Hello, World! </h4>");
+ $("#chartarea").html('');   
+var inputs = [];
+var tickerData ={};
+var colorSet =["#00e6e6", "#33cc33", "#c2f0c2", "#9fbfdf", "#d9b38c", "#ff8533", "#3973ac", "#b3ecff", "#0099cc", "#a3a3c2", "#ff704d" ];
+    
+// Make connection
+var socket = io.connect('http://localhost:3000');
+
+// Query DOM
+var ticker = document.getElementById('ticker');
+var searchOk = document.getElementById('searchok');
+
+var element = document.getElementById('chartarea');
+var positionInfo = element.getBoundingClientRect();
+var h = positionInfo.height;
+var w = positionInfo.width;
+console.log("dimension outside plot: ", h, w);
+
+// at initialization
+socket.emit("hello", {msg: "hello"});
+console.log("Hello called");
+    
+// Emit events
+searchOk.addEventListener('click', function(){
+    //inputs.push(ticker.value);
+    socket.emit('addTicker', {
+        ticker: ticker.value
+    });
+});
+
+// Listen for events
+socket.on('addTickerData', function(data){
+    console.log("received ticker", data);
+    tickerData = data;
+    inputs =[];
+    for (var key in data) inputs.push(key);
+    console.log("in socket.on getting data from server, tickers: ", inputs);
+    //$("#leftbox").append("<h4 style=\"margin-top: -5px;\"> Getting data:" + data + " </h4>");
+    plotLineChart(tickerData);
+    updateTickerPanel();
+}); 
+
+function plotLineChart(data) {
+    
+    $("#chartarea").html('');
+    // 2. Use the margin convention practice 
+    /*
+    var element = document.getElementById('chartarea');
+    var positionInfo = element.getBoundingClientRect();
+    var h = positionInfo.height;
+    var w = positionInfo.width;
+    */
+    var dataset = {}, dataReverse ={}, xLabels =[], colorSet =["#00e6e6", "#33cc33", "#c2f0c2", "#9fbfdf", "#d9b38c", "#ff8533", "#3973ac", "#b3ecff", "#0099cc", "#a3a3c2", "#ff704d" ];
+    
+    var margin = {top: 50, right: 50, bottom: 50, left: 50}
+      , width = w - margin.left - margin.right // Use the window's width 
+      , height = h - margin.top - margin.bottom; // Use the window's height
+    
+    console.log("chart height and width:", h, w);
+
+    // The number of datapoints
+    var xMax, yMax = 0, n = 21;
+    for (var key in data) {
+        xMax = data[key].date.length;
+        dataReverse[key] = {"date": [], "values": []};
+        dataReverse[key].date = data[key].date.reverse();
+        dataReverse[key].values = data[key].values.reverse();
+        if(yMax < d3.max(data[key].values)) yMax = d3.max(data[key].values);
+        xLabels = dataReverse[key].date;
+    }
+    
+    console.log("xMax yMax xLabels: ", xMax, yMax, xLabels);
+
+    // 5. X scale will use the index of our data
+    var xScale = d3.scaleLinear()
+        .domain([0, xMax-1]) // input
+        .range([0, width]); // output
+
+    // 6. Y scale will use the randomly generate number 
+    var yScale = d3.scaleLinear()
+        .domain([0, yMax]) // input 
+        .range([height, 0]); // output 
+    
+    var xAxis = d3.axisBottom(xScale)
+        .tickFormat(function(d) { return xLabels[d];})
+
+    // 7. d3's line generator
+    var line = d3.line()
+        .x(function(d, i) { return xScale(i); }) // set the x values for the line generator ZZZ
+        .y(function(d) { return yScale(d.y); }) // set the y values for the line generator 
+        .curve(d3.curveMonotoneX) // apply smoothing to the line
+                
+    // 1. Add the SVG to the page and employ #2
+    var svg = d3.select("#chartarea").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    // 3. Call the x axis in a group tag
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        //.call(d3.axisBottom(xScale)); // Create an axis component with d3.axisBottom
+        .call(xAxis);
+
+    // 4. Call the y axis in a group tag
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(d3.axisLeft(yScale)); // Create an axis component with d3.axisLeft
+
+    //Plot all ticker charts
+    var count = 0; //myChart = {};
+    for (var key in data) {
+        // 8. An array of objects of length N. Each object has key -> value pair, the key being "y" and the value is a random number
+        //var dataset = d3.range(n).map(function(d) { return {"y": d3.randomUniform(1)() } });
+        dataset[key] = d3.range(xMax).map(function(d) {return {"y": dataReverse[key].values[d], "x": dataReverse[key].date[d], "ticker": key};});
+        console.log("data[key].values = ", dataset[key]);
+
+        // 9. Append the path, bind the data, and call the line generator 
+        svg.append("path")
+            .datum(dataset[key]) // 10. Binds data to the line 
+            .attr("class", "line") // Assign a class for styling 
+            .style("stroke", colorSet[count])
+            .attr("d", line); // 11. Calls the line generator 
+        count += 1; if (count > 10) count = 0;
+        
+        // 12. Appends a circle for each datapoint - the purpose of this is for tooltips - as cannot pin point each point in path
+        myChart = svg.selectAll()
+            .data(dataset[key])
+            .enter().append("circle") // Uses the enter().append() method
+            //.attr("class", "dot") // Assign a class for styling
+            .attr("cx", function(d, i) { return xScale(i) }) //ZZZ
+            .attr("cy", function(d) { return yScale(d.y) })
+            .attr("r", 2)
+            .style("fill", "none")
+            .style("stroke", "none")
+            .style("pointer-events","all");
+
+       
+        console.log("myChart", myChart);
+        //Add tooltips
+        var tooltip = d3.select('#chartarea').append('div')
+            .style('position', 'absolute')
+            .style('background', '#e1e2ea')
+            .style('padding', '7px 7px 7px 7px')
+            .style('border', '1px #333 solid')
+            .style('border-radius', '5px')
+            .style('opacity', '0')
+
+        myChart.on('mouseover', function(d,i){
+            tooltip.transition()
+                .style('opacity', 1);
+
+            console.log("Tooltip: d i", d, i);
+
+            tooltip.html("<b>"+d.ticker+"</b>: "+d.y + "<br>on "+d.x)
+                .style('left', (d3.event.pageX)+'px')
+                .style('top', (d3.event.pageY+'px'))
+            d3.select(this).style('opacity', 0.5)
+        })
+
+        myChart.on('mouseout', function(d){
+            tooltip.transition()
+                .style('opacity', 0)
+            d3.select(this).style('opacity', 1)
+            });  
+            
+    }
+}
+    
+function updateTickerPanel() { // draw ticker selections
+    $("#tickerpanel").empty();
+    var elm;
+    for (i=0; i< inputs.length; i++){
+      elm = "<div style=\"width: 120px; height: 30px; background-color: #f1f4f2; border-radius: 3px; border: 1px solid grey; display: inline-block; *display: inline; margin-left: 5px; margin-top: 10px \">" +
+            "<p style=\"text-align: center; margin-top: 5px; width: 100px; display: inline-block; color: " + colorSet[i] + " \">" + inputs[i]+ "</p>" +
+            "<a href=\"#\" style=\"display: inline-block; margin-left: 5px; margin-top: 5px; \" onclick={handleClick("+i+")} >x</a>"+
+            "</div>";
+        
+        $("#tickerpanel").append(elm);
+    }
+}
+
+function handleClick(i){ //delete the selected ticker and redraw chart;
+    var ticker = inputs[i];
+    inputs.splice(i, 1); 
+    console.log("in handleClick before delete: ", inputs, i, ticker, tickerData);
+    socket.emit("removeTicker", {ticker: ticker});
+    delete tickerData[ticker];
+    plotLineChart(tickerData);
+    updateTickerPanel();
+    console.log("in handleClick after delete: ", i, inputs[i], tickerData);
+}
+
+//});
+</script>
+<% include _footer %>
