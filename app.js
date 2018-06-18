@@ -7,7 +7,7 @@ var app = express();
 var socket = require("socket.io");
 var ctrlViews = require("./app-server/controllers/view-ctrl.js")
 
-//var url = process.env.MONGOLAB_URI;
+var url = process.env.MONGOLAB_URI;
 //console.log("URL: ", url);
 
 //mongoose.connect("mongodb://localhost:27017/test"); //use the test db in localhost
