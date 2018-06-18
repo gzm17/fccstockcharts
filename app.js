@@ -12,11 +12,11 @@ var ctrlViews = require("./app-server/controllers/view-ctrl.js")
 
 //mongoose.connect("mongodb://localhost:27017/test"); //use the test db in localhost
 
-/*
+
 mongoose.connect(url, {
     useMongoClient: true
  }); //use the mLab free tier db
- */
+ 
 /*
 WARNING: The `useMongoClient` option is no longer necessary in mongoose 5.x, please remove it.
     at handleUseMongoClient (/Users/Z/coding/letsvote/node_modules/mongoose/lib/connection.js:440:17)

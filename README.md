@@ -3,6 +3,8 @@ This is a freecodecamp fullstack project. Detailed requirements see: https://www
 
 The boilerplate of this app was based on Express in Action and MEAN dev book and my previous fcc exercises. The charting is based on d3 examples by https://bl.ocks.org/mbostock;
 
+Stock data is from Alpha Vantage API on TIME_SERIES_DAILY https://www.alphavantage.co/documentation/ The API is often unstable. If no result is seen, wait for another time to try.
+
 This implemented all the user stories. This can be further improved:
 
 1) There is no error checking: if user inputs a non-existence ticker npthing happens;
