@@ -40,7 +40,8 @@ var tickerData ={};
 var colorSet =["#00e6e6", "#33cc33", "#c2f0c2", "#9fbfdf", "#d9b38c", "#ff8533", "#3973ac", "#b3ecff", "#0099cc", "#a3a3c2", "#ff704d" ];
     
 // Make connection
-var socket = io.connect('http://localhost:3000');
+//var socket = io.connect('http://localhost:3000'); //local host version
+var socket = io.connect('https://fccstockcharts.herokuapp.com');
 
 // Query DOM
 var ticker = document.getElementById('ticker');
